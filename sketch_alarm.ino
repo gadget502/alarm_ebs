@@ -11,10 +11,11 @@ const int RST_PIN   = 9;   // Chip Enable : RST
 const int IO_PIN   = 8;   // Input/Output : DAT
 const int SCK_PIN = 7;   // Serial Clock : CLK
 const int pirPin = 2;
-int priStat = 0;
+int pirStat = 0;
 int move_cnt = 0;
 int total_cnt = 0;
 int alarm[4]={25,61,61,8};
+int volume = 0x40;
 
 
 //네오픽셀을 사용하기 위해 객체 하나를 생성한다. 
@@ -66,6 +67,7 @@ void setup() {
 
 void loop() {
   String data;
+  String g_data;
   myRTC.updateTime(); 
   if (!(myRTC.seconds % 30)){
     if (pirStat == HIGH) {   // if motion detected
@@ -87,18 +89,18 @@ void loop() {
 
     if(myRTC.hours==alarm[0]&&myRTC.minutes==alarm[1]&&myRTC.seconds==alarm[2]&&myRTC.dayofmonth==alarm[3]/*서버에서 받아오는 월처리*/)
     {
-      alarm_start();
+      alarm_start(0x30);
       
       } 
 
 
     
-    webSocketClient.getData(data);
+    webSocketClient.getData(g_data);
     if (data.length() > 0) {
-      if(){
+      if(1){
         //알람 설정
         }
-      else if()
+      else if(1)
        //버튼을 이용한 알람 종료
        alarm_end();
       
@@ -214,8 +216,8 @@ void dfpExecute(byte CMD, byte Par1, byte Par2)
   for (byte i=0; i<10; i++) Serial.write(Command_line[i]);  
 }
 void alarm_start(byte vol){
-  dpfExecute(0x06,vol,0x00); // VolumeSet
-  dpfExecute(0x11,0x01,0x00); //repeatset
+  dfpxecute(0x06,vol,0x00); // VolumeSet
+  dfpExecute(0x11,0x01,0x00); //repeatset
   dfpExecute(0x0F,0x01,0x01); //PlayMusic
 }
 void alarm_end(){
