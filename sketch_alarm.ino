@@ -79,7 +79,7 @@ void loop() {
     }
     total_cnt++;
     
-    if(!(myRTC.minutes % 10){
+    if(!(myRTC.minutes % 10)){
       data =String.valueOf(move_cnt/total_cnt)
       webSocketClient.sendData(data);
       move_cnt = 0;
@@ -216,7 +216,7 @@ void dfpExecute(byte CMD, byte Par1, byte Par2)
   for (byte i=0; i<10; i++) Serial.write(Command_line[i]);  
 }
 void alarm_start(byte vol){
-  dfpxecute(0x06,vol,0x00); // VolumeSet
+  dfpExecute(0x06,vol,0x00); // VolumeSet
   dfpExecute(0x11,0x01,0x00); //repeatset
   dfpExecute(0x0F,0x01,0x01); //PlayMusic
 }
