@@ -1,5 +1,6 @@
 #include <WebSocketClient.h>
 #include <virtuabotixRTC.h>
+
 #include<Adafruit_NeoPixel.h>
 #include <TimeLib.h>
 #include <WiFi.h>
@@ -10,12 +11,6 @@
 const int RST_PIN   = 9;   // Chip Enable : RST
 const int IO_PIN   = 8;   // Input/Output : DAT
 const int SCK_PIN = 7;   // Serial Clock : CLK
-const int pirPin = 2;
-int priStat = 0;
-int move_cnt = 0;
-int total_cnt = 0;
-int alarm[4]={25,61,61,8};
-
 
 //네오픽셀을 사용하기 위해 객체 하나를 생성한다. 
 //첫번째 인자값은 네오픽셀의 LED의 개수
@@ -38,15 +33,15 @@ WebSocketClient webSocketClient;
 void setup() {
   Serial.begin(9600);
   //myRTC.setDS1302Time(00, 46, 20, 2, 26, 8, 2019);
+//  Serial.println("Connecting...");
   WiFi.begin(ssid, password);
   while ( WiFi.status() != WL_CONNECTED ) {
     delay(500);
 //    Serial.print(".");
-  pinMode(pirPin , INPUT); // pirPin 초기화
   }
   
-// Print our IP address
-// Serial.println("Connected!");
+   // Print our IP address
+//  Serial.println("Connected!");
 //  Serial.print("My IP address: ");
 //  Serial.println(WiFi.localIP());
   
@@ -59,6 +54,12 @@ void setup() {
   webSocketClient.path=path;
   webSocketClient.host=host;
 
+  if (webSocketClient.handshake(client)) {
+    Serial.println("Handshake successful");
+  } else {
+    Serial.println("Handshake failed.");
+  }
+
   strip.begin(); //네오픽셀을 초기화하기 위해 모든LED를 off시킨다
   strip.show();
 }
@@ -66,49 +67,102 @@ void setup() {
 
 void loop() {
   String data;
+
+  // Le as informacoes do CI
   myRTC.updateTime(); 
-  if (!(myRTC.seconds % 30)){
-    if (pirStat == HIGH) {   // if motion detected
-      colorWipe(strip.Color(0 ,0 , 255), 50);
-      move_cnt++;
-    } 
-    else {
-    colorWipe(strip.Color(255 ,0 , 0), 50); 
-    }
-    total_cnt++;
-    
-    if(!(myRTC.minutes % 10){
-      data =String.valueOf(move_cnt/total_cnt)
-      webSocketClient.sendData(data);
-      move_cnt = 0;
-      total_cnt = 0;
-      }
-    }
 
-    if(myRTC.hours==alarm[0]&&myRTC.minutes==alarm[1]&&myRTC.seconds==alarm[2]&&myRTC.dayofmonth==alarm[3]/*서버에서 받아오는 월처리*/)
-    {
-      alarm_start();
-      
-      } 
-
-
-    
+  // Imprime as informacoes no serial monitor
+  //Serial.print("Data : ");
+  // Chama a rotina que imprime o dia da semana
+//  imprime_dia_da_semana(myRTC.dayofweek);
+//  Serial.print(", ");
+//  Serial.print(myRTC.dayofmonth);
+//  Serial.print("/");
+//  Serial.print(myRTC.month);
+//  Serial.print("/");
+//  Serial.print(myRTC.year);
+//  Serial.print("  ");
+//  Serial.print("Time : ");
+  // Adiciona um 0 caso o valor da hora seja <10
+  if (myRTC.hours < 10)
+  {
+//    Serial.print("0");
+  }
+//  Serial.print(myRTC.hours);
+//  Serial.print(":");
+  // Adiciona um 0 caso o valor dos minutos seja <10
+  if (myRTC.minutes < 10)
+  {
+//    Serial.print("0");
+  }
+//  Serial.print(myRTC.minutes);
+//  Serial.print(":");
+  // Adiciona um 0 caso o valor dos segundos seja <10
+  if (myRTC.seconds < 10)
+  {
+//    Serial.print("0");
+  }
+//  Serial.println(myRTC.seconds);
+ 
+  if (client.connected()) {
+    webSocketClient.sendData("Info to be echoed back");
+ 
     webSocketClient.getData(data);
     if (data.length() > 0) {
-      if(){
-        //알람 설정
-        }
-      else if()
-       //버튼을 이용한 알람 종료
-       alarm_end();
-      
+//      Serial.print("Received data: ");
+//      Serial.println(data);
     }
-    else {
-    }
+ 
+  } else {
+//    Serial.println("Client disconnected.");
+  }
  
   delay(1000);
   
+  //아래의 순서대로 NeoPixel을 반복한다.  
+  colorWipe(strip.Color(255, 0, 0), 50); //빨간색 출력
+  //colorWipe(strip.Color(0, 255, 0), 50); //녹색 출력
+  //colorWipe(strip.Color(0, 0, 255), 50); //파란색 출력
 
+  //theaterChase(strip.Color(127, 127, 127), 50); //흰색 출력
+  //theaterChase(strip.Color(127,   0,   0), 50); //빨간색 출력
+  //theaterChase(strip.Color(  0,   0, 127), 50); //파란색 출력
+
+  //화려하게 다양한 색 출력
+  //rainbow(20);
+  //rainbowCycle(20);
+  //theaterChaseRainbow(50);
+  //if(myRTC==alarmtime){}
+  //알람을 실행 합니다.
+  
+}
+
+void imprime_dia_da_semana(int dia)
+{
+  switch (dia)
+  {
+    case 1:
+    Serial.print("Sunday");
+    break;
+    case 2:
+    Serial.print("Monday");
+    break;
+    case 3:
+    Serial.print("Tuesday");
+    break;
+    case 4:
+    Serial.print("Wednesday");
+    break;
+    case 5:
+    Serial.print("Thursday");
+    break;
+    case 6:
+    Serial.print("Friday");
+    break;
+    case 7:
+    Serial.print("Saturday");
+    break;
+  }
 }
 
 
@@ -213,7 +267,7 @@ void dfpExecute(byte CMD, byte Par1, byte Par2)
   // Send the command line to DFPlayer  
   for (byte i=0; i<10; i++) Serial.write(Command_line[i]);  
 }
-void alarm_start(byte vol){
+void alarm_start(uint16_t vol){
   dpfExecute(0x06,vol,0x00); // VolumeSet
   dpfExecute(0x11,0x01,0x00); //repeatset
   dfpExecute(0x0F,0x01,0x01); //PlayMusic
@@ -221,3 +275,6 @@ void alarm_start(byte vol){
 void alarm_end(){
   dfpExecute(0x0E,0x00,0x00);//Pause(End)
 }
+boolean motion_check(){
+    
+  }
