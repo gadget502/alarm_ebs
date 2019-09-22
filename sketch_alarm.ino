@@ -14,7 +14,7 @@ const int pirPin = 2;
 int pirStat = 0;
 int move_cnt = 0;
 int total_cnt = 0;
-int alarm[4]={25,61,61,8};
+uint8_t alarm_time[4]= {25,61,61,8};
 int volume = 0x40;
 
 
@@ -80,14 +80,14 @@ void loop() {
     total_cnt++;
     
     if(!(myRTC.minutes % 10)){
-      data =String.valueOf(move_cnt/total_cnt)
+      data =String(move_cnt/total_cnt);
       webSocketClient.sendData(data);
       move_cnt = 0;
       total_cnt = 0;
       }
     }
 
-    if(myRTC.hours==alarm[0]&&myRTC.minutes==alarm[1]&&myRTC.seconds==alarm[2]&&myRTC.dayofmonth==alarm[3]/*서버에서 받아오는 월처리*/)
+    if((myRTC.hours==alarm_time[0])&&(myRTC.minutes==alarm_time[1])&&(myRTC.seconds==alarm_time[2])&&(myRTC.dayofmonth==alarm_time[3]))/*서버에서 받아오는 월처리*/
     {
       alarm_start(0x30);
       
