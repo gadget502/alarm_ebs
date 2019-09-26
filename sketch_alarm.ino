@@ -10,12 +10,14 @@
 const int RST_PIN   = 9;   // Chip Enable : RST
 const int IO_PIN   = 8;   // Input/Output : DAT
 const int SCK_PIN = 7;   // Serial Clock : CLK
-const int pirPin = 2;
+const int pirPin = 39;
 int pirStat = 0;
 int move_cnt = 0;
 int total_cnt = 0;
 uint8_t alarm_time[4]= {25,61,61,8};
-int volume = 0x40;
+uint8_t alarm_LED[4]={255,255,255,10};
+uint8_t alarm_DoW[7]={0,0,0,0,0,0,0};
+int volume = 0x30;
 
 
 //네오픽셀을 사용하기 위해 객체 하나를 생성한다. 
@@ -69,47 +71,45 @@ void loop() {
   String data;
   String g_data;
   myRTC.updateTime(); 
-  if (!(myRTC.seconds % 30)){
+ //if (!(myRTC.seconds % 10)){
+    pirStat = digitalRead(pirPin); 
     if (pirStat == HIGH) {   // if motion detected
-      colorWipe(strip.Color(0 ,0 , 255), 50);
       move_cnt++;
-    } 
-    else {
-    colorWipe(strip.Color(255 ,0 , 0), 50); 
+        colorWipe(strip.Color(0 ,0 , 255), 10); 
+      
     }
+    else{
+        colorWipe(strip.Color(0 ,255 , 0), 10);  
+    }  
     total_cnt++;
-    
-    if(!(myRTC.minutes % 10)){
+   
+    if((myRTC.minutes % 10 == 0) && (myRTC.seconds % 60 == 0)){
       data =String(move_cnt/total_cnt);
-      webSocketClient.sendData(data);
+      //webSocketClient.sendData(data);
       move_cnt = 0;
       total_cnt = 0;
       }
-    }
-
-    if((myRTC.hours==alarm_time[0])&&(myRTC.minutes==alarm_time[1])&&(myRTC.seconds==alarm_time[2])&&(myRTC.dayofmonth==alarm_time[3]))/*서버에서 받아오는 월처리*/
+    if((myRTC.hours==alarm_time[0])&&(myRTC.minutes==alarm_time[1])&&(myRTC.seconds==alarm_time[2])&&(alarm_DoW[myRTC.dayofweek-1]))//서버에서 받아오는 월처리
     {
       alarm_start(0x30);
       
-      } 
-
-
-    
+    } 
     webSocketClient.getData(g_data);
+    
     if (data.length() > 0) {
       if(1){
         //알람 설정
+        alarm_set(data);
         }
       else if(1)
-       //버튼을 이용한 알람 종료
        alarm_end();
+        //버튼을 이용한 알람 종료
       
     }
     else {
     }
  
   delay(1000);
-  
 
 }
 
@@ -222,4 +222,9 @@ void alarm_start(byte vol){
 }
 void alarm_end(){
   dfpExecute(0x0E,0x00,0x00);//Pause(End)
+  colorWipe(strip.Color(0 ,0 , 0), 0);
 }
+void alarm_set(String socket){
+  //socket set
+  
+  }
