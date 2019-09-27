@@ -1,15 +1,9 @@
 #include <WebSocketClient.h>
-#include <virtuabotixRTC.h>
 #include<Adafruit_NeoPixel.h>
-#include <TimeLib.h>
 #include <WiFi.h>
 
 #define PIN 2
 
-// DS1302와 연결되는 아두이노 핀 번호
-const int RST_PIN   = 9;   // Chip Enable : RST
-const int IO_PIN   = 8;   // Input/Output : DAT
-const int SCK_PIN = 7;   // Serial Clock : CLK
 const int pirPin = 39;
 int pirStat = 0;
 float move_cnt = 0.0f;
@@ -35,37 +29,37 @@ WiFiClient client;
 WebSocketClient webSocketClient;
 
 void setup() {
-  colorWipe(strip.Color(255  , 255 , 255), 10);
   //Initialize LED strip
   strip.begin(); //네오픽셀을 초기화하기 위해 모든LED를 off시킨다
   strip.show();
   //Initialize Serial
   Serial.begin(9600);
   //Initialize Wifi
+  theaterChase(strip.Color(127, 127, 127), 5);
   WiFi.begin(ssid, password);
   while ( WiFi.status() != WL_CONNECTED ) {
     delay(500);
   }
   pinMode(pirPin , INPUT); // pirPin 초기화
+  theaterChase(strip.Color(255, 0, 127), 5);
   //Connect to Wifi
   client.connect("192.168.0.17", 80);
   //Initialize WebSocket
   webSocketClient.path = path;
   webSocketClient.host = host;
   //Initialize MP3 Module
+  theaterChase(strip.Color(0, 127, 127), 5);
   dfpExecute(0x3F, 0x00, 0x00);
   while(Serial.available()<10)
     delay(30);
-
+  colorWipe(strip.Color(0,0,0),0);
 }
 
 
 void loop() {
   String data;
-
   if(client.connected())
   {
-    colorWipe(strip.Color(255 , 0 , 0), 10); //connected Visualize
     webSocketClient.getData(data);
     if(data.length() > 0)
     {
@@ -73,7 +67,6 @@ void loop() {
       if("LED")
       {
         String Red,Green,Blue;
-        int dR,dG,dB;
         webSocketClient.getData(Red);
         webSocketClient.getData(Green);
         webSocketClient.getData(Blue);
@@ -86,16 +79,13 @@ void loop() {
         startAlarm(alarm_volume,alarm_LED[0],alarm_LED[1],alarm_LED[2]);
       }
       else if("AlarmStop"){
-        
         stopAlarm();
       }
       else if ("CheckStart"){
         isAlarmStarted = true;
-        
       }
        else if ("CheckStop"){
         isAlarmStarted = false;
-        
       }
       else if("MusicVolume"){
         String volume = "";
