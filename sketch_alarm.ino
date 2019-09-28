@@ -1,6 +1,8 @@
 #include <WebSocketClient.h>
 #include<Adafruit_NeoPixel.h>
 #include <WiFi.h>
+#include <string.h>
+#include "DFRobotDFPlayerMini.h"
 
 #define PIN 2
 
@@ -23,7 +25,9 @@ const char* ssid = "MisakaMOE";
 const char* password = "ayh000729";
 
 char path[] = "/socket.io/?EIO=3&transport=websocket";
-char host[] = "192.168.0.17";
+char host[] = "192.168.0.14";
+
+DFRobotDFPlayerMini myDFPlayer;
 
 WiFiClient client;
 WebSocketClient webSocketClient;
@@ -43,55 +47,106 @@ void setup() {
   pinMode(pirPin , INPUT); // pirPin 초기화
   theaterChase(strip.Color(255, 0, 127), 5);
   //Connect to Wifi
-  client.connect("192.168.0.17", 80);
+  client.connect("192.168.0.14", 3000);
   //Initialize WebSocket
   webSocketClient.path = path;
   webSocketClient.host = host;
+  if (webSocketClient.handshake(client)) {
+} else {
+}
+
   //Initialize MP3 Module
   theaterChase(strip.Color(0, 127, 127), 5);
+  /*
   dfpExecute(0x3F, 0x00, 0x00);
   while(Serial.available()<10)
     delay(30);
-  colorWipe(strip.Color(0,0,0),0);
+    */
+  if(!myDFPlayer.begin(Serial))
+  {
+    colorWipe(strip.Color(0,255,0),10);
+    while(true);
+  }
+  myDFPlayer.volume(30);  //Set volume value (0~30).
+  myDFPlayer.EQ(DFPLAYER_EQ_ROCK);
+  myDFPlayer.outputDevice(DFPLAYER_DEVICE_SD);
+
+  colorWipe(strip.Color(255,0,0),0);
+  webSocketClient.sendData("setup");
 }
 
 
+void startAlarm(byte vol,uint8_t g,uint8_t r,uint8_t b) {
+  colorWipe(strip.Color(g , r , b), 10);
+  //dfpExecute(0x06, vol, 0x00); // VolumeSet
+  myDFPlayer.play(1);  //Play the first mp3
+  delay(1000);
+    myDFPlayer.enableLoop(); //enable loop.
+  delay(1000);
+ 
+}
+
+void setVolume(int vol)
+{
+  /*
+    dfpExecute(0x06, 0x30, 0x00); // VolumeSet
+    delay(30);
+    */ 
+    myDFPlayer.volume(vol);  //Set volume value (0~30).
+    delay(1000);
+}
+
+void stopAlarm() {
+      myDFPlayer.disableLoop(); //disable loop.
+  delay(1000);
+    myDFPlayer.pause();  //pause the mp3
+  delay(1000);
+  colorWipe(strip.Color(0 , 0 , 0), 0);
+  isAlarmStarted = false;
+}
+
 void loop() {
-  String data;
-  if(client.connected())
-  {
+   String data;
     webSocketClient.getData(data);
     if(data.length() > 0)
     {
       //Compare Header, then run proper methods for each header
-      if("LED")
+      if(data == "LED")
       {
         String Red,Green,Blue;
         webSocketClient.getData(Red);
         webSocketClient.getData(Green);
         webSocketClient.getData(Blue);
+   
         alarm_LED[0]= Green.toInt();
         alarm_LED[1]= Red.toInt();
-        alarm_LED[2]= Blue.toInt();
-            
+        alarm_LED[2]= Blue.toInt(); 
+        
       }
-      else if("AlarmStart"){
+      else if(data == "AlarmStart"){
         startAlarm(alarm_volume,alarm_LED[0],alarm_LED[1],alarm_LED[2]);
+        webSocketClient.sendData("Alarm Started");
       }
-      else if("AlarmStop"){
+      else if(data == "AlarmStop"){
         stopAlarm();
+        webSocketClient.sendData("Alarm Stopped");
+
       }
-      else if ("CheckStart"){
+      else if (data == "CheckStart"){
         isAlarmStarted = true;
+        webSocketClient.sendData("Checking started");
+
       }
-       else if ("CheckStop"){
+       else if (data == "CheckStop"){
         isAlarmStarted = false;
       }
-      else if("MusicVolume"){
+      else if(data == "MusicVolume"){
         String volume = "";
         webSocketClient.getData(volume);
         alarm_volume = volume.toInt();
-        setVolume();
+        setVolume(alarm_volume);
+        webSocketClient.sendData("Volume Changed to "+volume);
+
       }
     }
     else {
@@ -100,9 +155,7 @@ void loop() {
         recordMovement();
       }
     }
-  }
-  else
-  {
+/*
     colorWipe(strip.Color(0 , 255 , 0), 10);
     //Client disconnected : Try to reconnect wi-fi
     while ( WiFi.status() != WL_CONNECTED ) {
@@ -110,8 +163,7 @@ void loop() {
     }
    //Connect to Wifi
    client.connect("192.168.0.17", 80);//disconnected Visualize
-    
-  }
+ */
   
 }
 
@@ -235,23 +287,4 @@ void dfpExecute(byte CMD, byte Par1, byte Par2)
                              };
   // Send the command line to DFPlayer
   for (byte i = 0; i < 10; i++) Serial.write(Command_line[i]);
-}
-
-void startAlarm(byte vol,uint8_t g,uint8_t r,uint8_t b) {
-  colorWipe(strip.Color(g , r , b), 10);
-  dfpExecute(0x06, vol, 0x00); // VolumeSet
-  dfpExecute(0x11, 0x01, 0x00); //repeatset
-  dfpExecute(0x0F, 0x01, 0x01); //PlayMusic
-  delay(30);
-}
-
-void setVolume()
-{
-    dfpExecute(0x06, alarm_volume, 0x00); // VolumeSet
-}
-
-void stopAlarm() {
-  dfpExecute(0x0E, 0x00, 0x00); //Pause(End)
-  colorWipe(strip.Color(0 , 0 , 0), 0);
-  isAlarmStarted = false;
 }
